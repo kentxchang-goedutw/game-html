@@ -1,0 +1,33 @@
+這份提示詞清單專為 **《九九神殿探險隊》** 量身打造，風格設定為統一的「美式卡通風 (American Cartoon Style)」，具有鮮豔的色彩、粗線條以及誇張的角色比例，非常適合用於休閒益智遊戲。
+
+---
+
+### [背景 - 神殿入口與森林]
+An ancient stone temple entrance hidden in a lush tropical jungle, large stone gates engraved with glowing multiplication symbols (1-9), vibrant green foliage, bright sunlight, 2D platformer game background, clean bold outlines, vibrant colors, 美式卡通風 (Cartoon Style), --ar 16:9
+
+### [背景 - 數字圖書館內部]
+The interior of a mystical ancient library inside the temple, floating glowing numeric cubes (1 to 81), massive stone bookshelves, magical blue aura, cinematic lighting, 2D game environment, flat vector art, 美式卡通風 (Cartoon Style), --ar 16:9
+
+### [角色 - 探險家主角 (阿九)]
+A spunky young boy explorer with a big backpack, wearing a khaki vest and a red bandana, holding a glowing magical tablet, expressive face, dynamic pose, white background, bold outlines, character concept art, 美式卡通風 (Cartoon Style)
+
+### [角色 - 守護石像魔 (魔數石像)]
+A giant, friendly but sturdy stone golem made of cubic blocks, a glowing multiplication sign "×" on its chest, floating stone hands, moss-covered, cute but powerful appearance, white background, 美式卡通風 (Cartoon Style)
+
+### [重要物件 - 傳說中的乘法金卷軸]
+A glowing golden ancient scroll floating in mid-air, sparkling magical dust, ornate Egyptian-style patterns, high-quality game icon, 2D vector style, vibrant gold colors, white background, 美式卡通風 (Cartoon Style)
+
+### [重要物件 - 神殿機關數字石磚]
+A set of stone tiles for a puzzle, each tile engraved with a number from 1 to 9, cracks on the stone, glowing etched lines, game asset, isometric view, high detail, 美式卡通風 (Cartoon Style)
+
+### [重要物件 - 能量回復藥水]
+A stylized glass bottle filled with glowing blue liquid, shaped like a lightning bolt or a number "9", wooden cork, game item icon, glossy texture, vibrant colors, white background, 美式卡通風 (Cartoon Style)
+
+### [重要物件 - 探險導航羅盤]
+A mechanical brass compass with a spinning "×" symbol instead of a needle, steampunk aesthetic, glowing magical core, game prop, white background, 美式卡通風 (Cartoon Style)
+
+### [UI 元素 - 數字輸入按鈕組]
+A collection of 2D game buttons, stone texture with golden borders, numbers 1 to 9 carved in the center, rounded corners, "press" state and "idle" state, UI kit for mobile games, 美式卡通風 (Cartoon Style)
+
+### [UI 元素 - 任務完成面板]
+A wooden and stone decorative UI panel, "Level Complete" written in big playful font, 3 golden stars on top, celebratory confetti, colorful and bright, game interface design, 美式卡通風 (Cartoon Style)
