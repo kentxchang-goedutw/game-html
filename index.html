@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>九九神殿探險隊 - 逆向乘法大冒險</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+      background-color: #0d1117;
+      color: #ffffff;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* Custom Animations & Styles */
+    .bg-custom-overlay {
+      background: radial-gradient(circle at center, rgba(13, 17, 23, 0.4) 0%, rgba(13, 17, 23, 0.85) 100%);
+    }
+
+    .stone-card {
+      background: linear-gradient(145deg, #3a3f4d, #232731);
+      box-shadow: 0 6px 0 #151821, inset 0 2px 4px rgba(255, 255, 255, 0.2);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.2s;
+    }
+    
+    .stone-card:hover:not(:disabled) {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 0 #151821, inset 0 2px 6px rgba(255, 255, 255, 0.4);
+      filter: brightness(1.15);
+    }
+    
+    .stone-card:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #151821;
+    }
+
+    .stone-card.selected {
+      border: 3px solid #f59e0b;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.8), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+    }
+
+    .slot-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 3px dashed #64748b;
+      box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.6);
+      transition: all 0.2s;
+    }
+
+    .slot-box.filled {
+      border-style: solid;
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+
+    .glow-gold {
+      text-shadow: 0 0 12px rgba(245, 158, 11, 0.8), 0 0 24px rgba(217, 119, 6, 0.5);
+    }
+
+    .glow-blue {
+      text-shadow: 0 0 12px rgba(59, 130, 246, 0.8), 0 0 24px rgba(37, 99, 235, 0.5);
+    }
+
+    /* Animations */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .animate-shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6)); }
+      50% { filter: drop-shadow(0 0 20px rgba(245, 158, 11, 1)); }
+    }
+    .animate-pulse-glow {
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center relative">
+
+  <!-- Background Canvas for Particles -->
+  <canvas id="particle-canvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+  <!-- Dynamic Game Background Image -->
+  <div id="bg-container" class="fixed inset-0 bg-cover bg-center transition-all duration-700 z-0 scale-105" style="background-image: url('pics/bg_forest.jpg');">
+    <div class="absolute inset-0 bg-custom-overlay"></div>
+  </div>
+
+  <!-- Audio Controls Top Right -->
+  <div class="fixed top-4 right-4 z-50 flex items-center space-x-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700 shadow-lg">
+    <button id="btn-sound" class="text-amber-400 hover:text-amber-300 transition flex items-center space-x-2 text-sm font-bold">
+      <span id="sound-icon">🔊</span>
+      <span id="sound-text">音效 ON</span>
+    </button>
+    <span class="text-slate-600">|</span>
+    <button id="btn-help" class="text-slate-300 hover:text-white text-sm font-bold flex items-center space-x-1">
+      <span>❓ 說明</span>
+    </button>
+  </div>
+
+  <!-- Main Container -->
+  <main class="relative z-10 w-full max-w-5xl px-4 py-6 flex flex-col items-center justify-center min-h-screen">
+
+    <!-- ==================== START SCREEN ==================== -->
+    <section id="start-screen" class="w-full flex flex-col items-center text-center space-y-6 animate-fade-in">
+      <!-- Game Logo / Header -->
+      <div class="relative group">
+        <div class="absolute -inset-1 bg-gradient-to-r from-amber-500 to-yellow-300 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+        <div class="relative bg-slate-900/90 border-2 border-amber-500/50 rounded-3xl px-8 py-6 backdrop-blur-md shadow-2xl">
+          <div class="flex justify-center items-center space-x-3 mb-2">
+            <img src="pics/item_compass.jpg" class="w-12 h-12 rounded-full border-2 border-amber-400 shadow-md animate-spin-slow" alt="Compass">
+            <h1 class="text-4xl md:text-6xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 glow-gold">
+              九九神殿探險隊
+            </h1>
+            <img src="pics/item_scroll.jpg" class="w-12 h-12 rounded-full border-2 border-amber-400 shadow-md" alt="Scroll">
+          </div>
+          <p class="text-amber-200 text-lg md:text-xl font-bold tracking-widest">
+            — 逆向因子解密 ‧ 數字神殿探險 —
+          </p>
+        </div>
+      </div>
+
+      <!-- Character Preview Banner -->
+      <div class="flex items-center justify-center space-x-4 md:space-x-8 my-4">
+        <!-- Ah-Jiu -->
+        <div class="flex flex-col items-center bg-slate-800/70 border border-slate-700 rounded-2xl p-3 shadow-xl transform hover:scale-105 transition">
+          <img src="pics/char_explorer.jpg" class="w-24 h-24 md:w-32 md:h-32 rounded-xl object-cover border-2 border-amber-400 shadow-md" alt="探險家阿九">
+          <span class="mt-2 text-sm font-bold text-amber-300">探險家 阿九</span>
+        </div>
+        
+        <!-- VS Icon / Symbol -->
+        <div class="text-3xl font-black text-amber-400 animate-pulse">
+          ⚔️
+        </div>
+
+        <!-- Golem -->
+        <div class="flex flex-col items-center bg-slate-800/70 border border-slate-700 rounded-2xl p-3 shadow-xl transform hover:scale-105 transition">
+          <img src="pics/char_golem.jpg" class="w-24 h-24 md:w-32 md:h-32 rounded-xl object-cover border-2 border-cyan-400 shadow-md" alt="守護石像魔">
+          <span class="mt-2 text-sm font-bold text-cyan-300">守護者 魔數石像</span>
+        </div>
+      </div>
+
+      <!-- Mode Selector Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+        <button id="btn-start-stage" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xl py-4 px-6 rounded-2xl shadow-lg shadow-amber-500/30 transform hover:-translate-y-1 active:translate-y-0 transition flex items-center justify-center space-x-2">
+          <span>🗺️ 關卡冒險</span>
+        </button>
+
+        <button id="btn-start-endless" class="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xl py-4 px-6 rounded-2xl shadow-lg shadow-cyan-500/30 transform hover:-translate-y-1 active:translate-y-0 transition flex items-center justify-center space-x-2">
+          <span>⚡ 無盡試煉</span>
+        </button>
+      </div>
+
+      <!-- Feature Badges -->
+      <div class="grid grid-cols-3 gap-3 w-full max-w-lg mt-4 text-xs font-bold text-slate-300">
+        <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-2 flex items-center justify-center space-x-1">
+          <img src="pics/item_tile.jpg" class="w-6 h-6 rounded" alt="Tile">
+          <span>逆向因子分解</span>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-2 flex items-center justify-center space-x-1">
+          <img src="pics/item_potion.jpg" class="w-6 h-6 rounded" alt="Potion">
+          <span>能量藥水輔助</span>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-2 flex items-center justify-center space-x-1">
+          <img src="pics/ui_complete.jpg" class="w-6 h-6 rounded" alt="Panel">
+          <span>心算能力突破</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== GAMEPLAY SCREEN ==================== -->
+    <section id="game-screen" class="hidden w-full flex-col items-center space-y-4">
+      
+      <!-- Top HUD Bar -->
+      <div class="w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl px-4 py-3 backdrop-blur-md shadow-2xl flex flex-wrap items-center justify-between gap-2">
+        <!-- HP Hearts -->
+        <div class="flex items-center space-x-1 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+          <span class="text-sm font-bold text-slate-400 mr-1">生命:</span>
+          <div id="hp-container" class="flex space-x-1 text-xl">
+            <span>❤️</span><span>❤️</span><span>❤️</span>
+          </div>
+        </div>
+
+        <!-- Stage Title & Door Progress -->
+        <div class="flex flex-col items-center">
+          <span id="hud-stage-title" class="text-sm font-bold text-amber-400 tracking-wide">Stage 1: 規律之林</span>
+          <div class="flex items-center space-x-2 mt-0.5">
+            <span class="text-xs text-slate-400">石門進度:</span>
+            <div id="door-dots" class="flex space-x-1">
+              <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+              <span class="w-3 h-3 rounded-full bg-slate-600"></span>
+              <span class="w-3 h-3 rounded-full bg-slate-600"></span>
+              <span class="w-3 h-3 rounded-full bg-slate-600"></span>
+              <span class="w-3 h-3 rounded-full bg-slate-600"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timer Bar & Score -->
+        <div class="flex items-center space-x-3">
+          <!-- Item Potion Button -->
+          <button id="btn-use-potion" class="relative group bg-slate-800 hover:bg-slate-700 border border-blue-500/50 p-1.5 rounded-xl transition flex items-center space-x-1" title="使用能量藥水 (+10秒 / 恢復1生命)">
+            <img src="pics/item_potion.jpg" class="w-7 h-7 rounded-lg border border-cyan-400 object-cover" alt="Potion">
+            <span id="potion-count" class="text-xs font-black text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded-md border border-cyan-500">2</span>
+          </button>
+
+          <!-- Timer Bar -->
+          <div class="flex flex-col items-end w-28 sm:w-36">
+            <div class="flex justify-between w-full text-xs font-bold mb-1">
+              <span class="text-slate-400">剩餘時間</span>
+              <span id="timer-text" class="text-amber-400">20s</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div id="timer-bar" class="h-full bg-gradient-to-r from-green-500 via-amber-400 to-red-500 transition-all duration-300" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Battle & Gate Area -->
+      <div id="puzzle-container" class="relative w-full bg-slate-900/80 border-2 border-amber-500/40 rounded-3xl p-4 md:p-6 backdrop-blur-md shadow-2xl flex flex-col items-center overflow-hidden">
+        
+        <!-- Background Stone Texture Overlay -->
+        <div class="absolute inset-0 opacity-10 pointer-events-none bg-repeat" style="background-image: url('pics/item_tile.jpg');"></div>
+
+        <div class="relative z-10 w-full flex flex-col md:flex-row items-center justify-between gap-4 my-2">
+          
+          <!-- Ah-Jiu Character Left -->
+          <div class="flex flex-col items-center w-28 md:w-36 flex-shrink-0">
+            <div class="relative">
+              <img id="char-ahjiu" src="pics/char_explorer.jpg" class="w-20 h-20 md:w-28 md:h-28 rounded-2xl border-2 border-amber-400 shadow-lg object-cover transition transform duration-300" alt="Ah Jiu">
+              <div id="speech-bubble" class="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-amber-400 text-slate-950 font-extrabold text-xs px-2.5 py-1 rounded-full whitespace-nowrap shadow-md opacity-0 transition duration-300">
+                加油！
+              </div>
+            </div>
+            <span class="mt-2 text-xs font-bold text-amber-300 bg-slate-950/80 px-2 py-0.5 rounded-full border border-amber-500/30">探險家 阿九</span>
+          </div>
+
+          <!-- Central Stone Temple Gate Puzzle -->
+          <div class="flex-1 w-full flex flex-col items-center justify-center bg-slate-950/70 border-2 border-amber-600/50 rounded-2xl p-4 md:p-6 shadow-inner relative">
+            
+            <span class="text-xs font-bold text-amber-400 tracking-widest mb-1 uppercase">Ancient Multiplication Gate</span>
+            
+            <!-- Target Number Display -->
+            <div class="flex items-center space-x-3 mb-4">
+              <span class="text-sm font-bold text-slate-400">門扉目標 (乘積):</span>
+              <div class="bg-gradient-to-b from-amber-600 to-yellow-700 p-1 rounded-2xl shadow-xl">
+                <div class="bg-slate-950 px-6 py-2 rounded-xl border border-amber-400">
+                  <span id="target-number" class="text-4xl md:text-6xl font-black text-amber-400 glow-gold tracking-tight">12</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Puzzle Equation / Slots -->
+            <div class="flex items-center justify-center space-x-3 md:space-x-6 my-2 w-full">
+              <!-- Slot 1 -->
+              <button id="slot-0" class="slot-box w-20 h-20 md:w-24 md:h-24 rounded-2xl flex flex-col items-center justify-center cursor-pointer transform hover:scale-105 transition">
+                <span class="text-3xl md:text-4xl font-black text-white font-mono">?</span>
+                <span class="text-[10px] text-slate-400 mt-1">凹槽 1</span>
+              </button>
+
+              <span class="text-3xl md:text-5xl font-black text-amber-400 glow-gold">×</span>
+
+              <!-- Slot 2 -->
+              <button id="slot-1" class="slot-box w-20 h-20 md:w-24 md:h-24 rounded-2xl flex flex-col items-center justify-center cursor-pointer transform hover:scale-105 transition">
+                <span class="text-3xl md:text-4xl font-black text-white font-mono">?</span>
+                <span class="text-[10px] text-slate-400 mt-1">凹槽 2</span>
+              </button>
+
+              <span class="text-2xl md:text-4xl font-black text-slate-400">=</span>
+
+              <span id="target-preview" class="text-3xl md:text-5xl font-black text-amber-400">?</span>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center space-x-4 mt-4">
+              <button id="btn-clear-slots" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs md:text-sm py-2 px-4 rounded-xl border border-slate-600 transition flex items-center space-x-1">
+                <span>🔄 清除凹槽</span>
+              </button>
+              <button id="btn-submit" class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs md:text-sm py-2 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center space-x-1">
+                <span>✨ 確認開門</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Golem Guardian Right -->
+          <div class="flex flex-col items-center w-28 md:w-36 flex-shrink-0">
+            <img id="char-golem-game" src="pics/char_golem.jpg" class="w-20 h-20 md:w-28 md:h-28 rounded-2xl border-2 border-cyan-400 shadow-lg object-cover transition transform duration-300" alt="Golem">
+            <span class="mt-2 text-xs font-bold text-cyan-300 bg-slate-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">魔數石像</span>
+          </div>
+
+        </div>
+
+        <!-- Bottom Inventory Section -->
+        <div class="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 mt-2 flex flex-col items-center">
+          <div class="flex items-center justify-between w-full mb-3 px-2">
+            <div class="flex items-center space-x-2">
+              <img src="pics/item_tile.jpg" class="w-5 h-5 rounded border border-amber-500" alt="Tile">
+              <span class="text-xs font-extrabold text-amber-300 tracking-wider">探險背包：請選擇能量石塊 (乘數)</span>
+            </div>
+            <span class="text-[11px] text-slate-400">點擊石塊放入凹槽</span>
+          </div>
+
+          <!-- Stone Tiles Grid -->
+          <div id="inventory-grid" class="grid grid-cols-4 sm:grid-cols-8 gap-2.5 md:gap-4 w-full justify-items-center">
+            <!-- Dynamically populated stone buttons -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== RESULT / SETTLEMENT SCREEN ==================== -->
+    <section id="result-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div class="relative w-full max-w-lg bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center animate-scale-up">
+        
+        <!-- Header Banner Image -->
+        <div class="relative w-full -mt-12 mb-4 flex justify-center">
+          <img src="pics/ui_complete.jpg" class="w-64 md:w-80 h-auto rounded-2xl shadow-2xl border-2 border-amber-400 object-cover" alt="Level Complete">
+        </div>
+
+        <h2 id="result-title" class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500 glow-gold mb-1">
+          關卡解密成功！
+        </h2>
+        <p id="result-subtitle" class="text-sm font-bold text-amber-200/80 mb-4">
+          你成功通過了古老神殿的考核
+        </p>
+
+        <!-- Stars Rating -->
+        <div id="result-stars" class="flex space-x-2 text-4xl mb-4">
+          <span class="animate-bounce">⭐</span>
+          <span class="animate-bounce" style="animation-delay: 0.15s">⭐</span>
+          <span class="animate-bounce" style="animation-delay: 0.3s">⭐</span>
+        </div>
+
+        <!-- Detailed Stats Box -->
+        <div class="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-sm space-y-2 mb-6 text-slate-300">
+          <div class="flex justify-between border-b border-slate-800 pb-1.5">
+            <span>解鎖石門數量：</span>
+            <span id="stat-doors" class="font-bold text-amber-400">5 / 5</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 pb-1.5">
+            <span>總耗時：</span>
+            <span id="stat-time" class="font-bold text-cyan-400">42 秒</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 pb-1.5">
+            <span>計算正確率：</span>
+            <span id="stat-accuracy" class="font-bold text-green-400">100%</span>
+          </div>
+          <div class="flex justify-between">
+            <span>掌握的因子關係：</span>
+            <span id="stat-factors" class="font-bold text-amber-300">3×4=12, 6×8=48...</span>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-4 w-full">
+          <button id="btn-result-main" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl border border-slate-600 transition">
+            🏠 主選單
+          </button>
+          <button id="btn-result-next" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black py-3 rounded-xl shadow-lg transition">
+            ➡️ 下一關卡
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== HELP / INSTRUCTIONS MODAL ==================== -->
+    <section id="help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div class="relative w-full max-w-lg bg-slate-900 border border-amber-500/60 rounded-3xl p-6 shadow-2xl flex flex-col text-slate-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <img src="pics/item_scroll.jpg" class="w-8 h-8 rounded-full border border-amber-400" alt="Scroll">
+            <h3 class="text-xl font-black text-amber-400">探險指南與規則</h3>
+          </div>
+          <button id="btn-close-help" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
+        </div>
+
+        <div class="space-y-3 text-xs md:text-sm overflow-y-auto max-h-96 pr-2">
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-amber-300 mb-1">🔍 逆向乘法核心玩法</h4>
+            <p class="text-slate-400">
+              神殿門上會顯示目標數字 (乘積)，例如 <span class="text-amber-400 font-bold">12</span>。你必須從背包中選出兩個數字石塊 (如 <span class="text-blue-400 font-bold">3</span> 與 <span class="text-blue-400 font-bold">4</span>)，讓其相乘等於門上的數字！
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-cyan-300 mb-1">🗺️ 三大冒險領域</h4>
+            <ul class="list-disc list-inside text-slate-400 space-y-1">
+              <li><strong class="text-slate-200">Stage 1 規律之林</strong>：熟練 2, 5, 10 的乘法規律。</li>
+              <li><strong class="text-slate-200">Stage 2 翻倍迷宮</strong>：掌握 3, 4, 8 之間的翻倍倍數關係。</li>
+              <li><strong class="text-slate-200">Stage 3 終極神殿</strong>：挑戰 6, 7, 9 高難度心算！</li>
+            </ul>
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-green-300 mb-1">🧪 探險道具輔助</h4>
+            <p class="text-slate-400">
+              當遇到時間不足或生命危機時，可使用<strong class="text-cyan-300">能量藥水</strong>增加 10 秒倒數或恢復生命！
+            </p>
+          </div>
+        </div>
+
+        <button id="btn-understand" class="mt-5 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl transition">
+          我明白了，開始探險！
+        </button>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Game Logic Script -->
+  <script>
+    /* ==========================================================================
+       AUDIO SYNTHESIZER (Web Audio API)
+       ========================================================================== */
+    class SoundController {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+      }
+
+      playTone(freq, type, duration, gainVal = 0.1) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {
+          console.warn("Audio play error", e);
+        }
+      }
+
+      playClick() {
+        this.playTone(600, 'sine', 0.08, 0.15);
+      }
+
+      playSelect() {
+        this.playTone(800, 'triangle', 0.1, 0.2);
+      }
+
+      playCorrect() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        // Chime sequence
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.25, 0.2), idx * 80);
+        });
+      }
+
+      playWrong() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [220, 180].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sawtooth', 0.2, 0.2), idx * 100);
+        });
+      }
+
+      playPotion() {
+        this.playTone(900, 'sine', 0.3, 0.25);
+      }
+
+      playVictory() {
+        if (!this.enabled) return;
+        [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'triangle', 0.4, 0.25), idx * 150);
+        });
+      }
+    }
+
+    const sound = new SoundController();
+
+    /* ==========================================================================
+       PARTICLE CANVAS SYSTEM
+       ========================================================================== */
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x || Math.random() * canvas.width;
+        this.y = y || Math.random() * canvas.height;
+        this.size = Math.random() * 4 + 1;
+        this.speedX = (Math.random() - 0.5) * 2;
+        this.speedY = (Math.random() - 0.5) * 2 - 1;
+        this.color = color || '#f59e0b';
+        this.alpha = Math.random() * 0.8 + 0.2;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= 0.005;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.alpha);
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function createBurst(x, y, color, count = 25) {
+      for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color));
+      }
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (particles.length < 20) {
+        particles.push(new Particle(null, null, '#fbbf24'));
+      }
+      particles.forEach((p, index) => {
+        p.update();
+        p.draw();
+        if (p.alpha <= 0) particles.splice(index, 1);
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+
+    /* ==========================================================================
+       GAME DATA & CONFIGURATION
+       ========================================================================== */
+    const STAGES = [
+      {
+        id: 1,
+        title: "Stage 1: 規律之林 (2 / 5 / 10 倍數)",
+        bg: "pics/bg_forest.jpg",
+        timer: 20,
+        doors: [
+          { target: 10, factors: [2, 5] },
+          { target: 25, factors: [5, 5] },
+          { target: 40, factors: [4, 10] },
+          { target: 15, factors: [3, 5] },
+          { target: 50, factors: [5, 10] }
+        ]
+      },
+      {
+        id: 2,
+        title: "Stage 2: 翻倍迷宮 (3 / 4 / 8 翻倍關係)",
+        bg: "pics/bg_forest.jpg",
+        timer: 16,
+        doors: [
+          { target: 12, factors: [3, 4] },
+          { target: 24, factors: [3, 8] },
+          { target: 16, factors: [2, 8] },
+          { target: 32, factors: [4, 8] },
+          { target: 36, factors: [4, 9] }
+        ]
+      },
+      {
+        id: 3,
+        title: "Stage 3: 終極神殿 (6 / 7 / 9 高難度)",
+        bg: "pics/bg_library.jpg",
+        timer: 12,
+        doors: [
+          { target: 42, factors: [6, 7] },
+          { target: 56, factors: [7, 8] },
+          { target: 63, factors: [7, 9] },
+          { target: 81, factors: [9, 9] },
+          { target: 49, factors: [7, 7] }
+        ]
+      }
+    ];
+
+    /* ==========================================================================
+       GAME STATE MANAGEMENT
+       ========================================================================== */
+    const gameState = {
+      mode: 'stage', // 'stage' or 'endless'
+      currentStageIdx: 0,
+      currentDoorIdx: 0,
+      hp: 3,
+      maxHp: 3,
+      potions: 2,
+      timeRemaining: 20,
+      timerInterval: null,
+      selectedSlots: [null, null],
+      inventoryStones: [],
+      solvedFactors: new Set(),
+      startTime: 0,
+      totalAttempts: 0,
+      correctAttempts: 0
+    };
+
+    /* ==========================================================================
+       DOM ELEMENTS
+       ========================================================================== */
+    const DOM = {
+      bgContainer: document.getElementById('bg-container'),
+      startScreen: document.getElementById('start-screen'),
+      gameScreen: document.getElementById('game-screen'),
+      resultScreen: document.getElementById('result-screen'),
+      helpModal: document.getElementById('help-modal'),
+      
+      btnSound: document.getElementById('btn-sound'),
+      soundIcon: document.getElementById('sound-icon'),
+      soundText: document.getElementById('sound-text'),
+      btnHelp: document.getElementById('btn-help'),
+      btnCloseHelp: document.getElementById('btn-close-help'),
+      btnUnderstand: document.getElementById('btn-understand'),
+
+      btnStartStage: document.getElementById('btn-start-stage'),
+      btnStartEndless: document.getElementById('btn-start-endless'),
+
+      hpContainer: document.getElementById('hp-container'),
+      hudStageTitle: document.getElementById('hud-stage-title'),
+      doorDots: document.getElementById('door-dots'),
+      timerText: document.getElementById('timer-text'),
+      timerBar: document.getElementById('timer-bar'),
+      potionCount: document.getElementById('potion-count'),
+      btnUsePotion: document.getElementById('btn-use-potion'),
+
+      puzzleContainer: document.getElementById('puzzle-container'),
+      targetNumber: document.getElementById('target-number'),
+      targetPreview: document.getElementById('target-preview'),
+      slot0: document.getElementById('slot-0'),
+      slot1: document.getElementById('slot-1'),
+      inventoryGrid: document.getElementById('inventory-grid'),
+      btnClearSlots: document.getElementById('btn-clear-slots'),
+      btnSubmit: document.getElementById('btn-submit'),
+
+      charAhjiu: document.getElementById('char-ahjiu'),
+      charGolemGame: document.getElementById('char-golem-game'),
+      speechBubble: document.getElementById('speech-bubble'),
+
+      resultTitle: document.getElementById('result-title'),
+      resultSubtitle: document.getElementById('result-subtitle'),
+      resultStars: document.getElementById('result-stars'),
+      statDoors: document.getElementById('stat-doors'),
+      statTime: document.getElementById('stat-time'),
+      statAccuracy: document.getElementById('stat-accuracy'),
+      statFactors: document.getElementById('stat-factors'),
+      btnResultMain: document.getElementById('btn-result-main'),
+      btnResultNext: document.getElementById('btn-result-next')
+    };
+
+    /* ==========================================================================
+       GAME LOGIC & EVENT HANDLERS
+       ========================================================================== */
+
+    function initEvents() {
+      DOM.btnSound.addEventListener('click', toggleSound);
+      DOM.btnHelp.addEventListener('click', () => DOM.helpModal.classList.remove('hidden'));
+      DOM.btnCloseHelp.addEventListener('click', () => DOM.helpModal.classList.add('hidden'));
+      DOM.btnUnderstand.addEventListener('click', () => DOM.helpModal.classList.add('hidden'));
+
+      DOM.btnStartStage.addEventListener('click', () => startNewGame('stage'));
+      DOM.btnStartEndless.addEventListener('click', () => startNewGame('endless'));
+
+      DOM.slot0.addEventListener('click', () => clearSlot(0));
+      DOM.slot1.addEventListener('click', () => clearSlot(1));
+
+      DOM.btnClearSlots.addEventListener('click', () => {
+        sound.playClick();
+        clearSlot(0);
+        clearSlot(1);
+      });
+
+      DOM.btnSubmit.addEventListener('click', validateAnswer);
+      DOM.btnUsePotion.addEventListener('click', usePotion);
+
+      DOM.btnResultMain.addEventListener('click', showStartScreen);
+      DOM.btnResultNext.addEventListener('click', advanceStageOrDoor);
+    }
+
+    function toggleSound() {
+      sound.enabled = !sound.enabled;
+      DOM.soundIcon.textContent = sound.enabled ? '🔊' : '🔇';
+      DOM.soundText.textContent = sound.enabled ? '音效 ON' : '音效 OFF';
+    }
+
+    function startNewGame(mode) {
+      sound.playClick();
+      gameState.mode = mode;
+      gameState.currentStageIdx = 0;
+      gameState.currentDoorIdx = 0;
+      gameState.hp = gameState.maxHp;
+      gameState.potions = 2;
+      gameState.solvedFactors.clear();
+      gameState.startTime = Date.now();
+      gameState.totalAttempts = 0;
+      gameState.correctAttempts = 0;
+
+      DOM.startScreen.classList.add('hidden');
+      DOM.resultScreen.classList.add('hidden');
+      DOM.gameScreen.classList.remove('hidden');
+
+      loadCurrentDoor();
+    }
+
+    function loadCurrentDoor() {
+      const stage = STAGES[gameState.currentStageIdx];
+      DOM.bgContainer.style.backgroundImage = `url('${stage.bg}')`;
+      DOM.hudStageTitle.textContent = stage.title;
+
+      updateHUD();
+      resetSlots();
+
+      // Get current door question
+      let doorData;
+      if (gameState.mode === 'stage') {
+        doorData = stage.doors[gameState.currentDoorIdx];
+      } else {
+        // Endless random generator
+        const a = Math.floor(Math.random() * 8) + 2; // 2..9
+        const b = Math.floor(Math.random() * 8) + 2; // 2..9
+        doorData = { target: a * b, factors: [a, b] };
+      }
+
+      DOM.targetNumber.textContent = doorData.target;
+      DOM.targetPreview.textContent = '?';
+
+      // Generate Stone Inventory (must include valid factors + extra distractor stones)
+      generateInventory(doorData.factors);
+
+      // Start timer
+      startTimer(stage.timer);
+
+      // Trigger Ah-Jiu speech hint
+      showSpeech(`找找看哪兩個數相乘是 ${doorData.target}！`);
+    }
+
+    function generateInventory(requiredFactors) {
+      // Basic candidates pool
+      let pool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      
+      // Ensure required factors are present
+      let stones = [...requiredFactors];
+      
+      // Add random distractors up to 8 stones
+      while (stones.length < 8) {
+        let randVal = pool[Math.floor(Math.random() * pool.length)];
+        stones.push(randVal);
+      }
+
+      // Shuffle stones
+      stones.sort(() => Math.random() - 0.5);
+
+      gameState.inventoryStones = stones.map((val, idx) => ({
+        id: idx,
+        value: val,
+        used: false
+      }));
+
+      renderInventory();
+    }
+
+    function renderInventory() {
+      DOM.inventoryGrid.innerHTML = '';
+      gameState.inventoryStones.forEach(stone => {
+        const btn = document.createElement('button');
+        btn.className = `stone-card w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center font-black text-2xl md:text-3xl text-amber-300 font-mono ${stone.used ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`;
+        btn.textContent = stone.value;
+        btn.disabled = stone.used;
+
+        btn.addEventListener('click', () => selectStone(stone));
+        DOM.inventoryGrid.appendChild(btn);
+      });
+    }
+
+    function selectStone(stone) {
+      if (stone.used) return;
+
+      // Find first empty slot
+      let emptyIdx = gameState.selectedSlots.findIndex(s => s === null);
+      if (emptyIdx === -1) return; // Both slots full
+
+      sound.playSelect();
+      stone.used = true;
+      gameState.selectedSlots[emptyIdx] = stone;
+
+      updateSlotsUI();
+      renderInventory();
+
+      // Auto-validate if both slots filled
+      if (gameState.selectedSlots[0] !== null && gameState.selectedSlots[1] !== null) {
+        setTimeout(validateAnswer, 200);
+      }
+    }
+
+    function clearSlot(slotIdx) {
+      const stone = gameState.selectedSlots[slotIdx];
+      if (stone) {
+        stone.used = false;
+        gameState.selectedSlots[slotIdx] = null;
+        updateSlotsUI();
+        renderInventory();
+      }
+    }
+
+    function resetSlots() {
+      gameState.selectedSlots = [null, null];
+      updateSlotsUI();
+    }
+
+    function updateSlotsUI() {
+      const s0 = gameState.selectedSlots[0];
+      const s1 = gameState.selectedSlots[1];
+
+      // Slot 0
+      if (s0) {
+        DOM.slot0.classList.add('filled');
+        DOM.slot0.firstElementChild.textContent = s0.value;
+      } else {
+        DOM.slot0.classList.remove('filled');
+        DOM.slot0.firstElementChild.textContent = '?';
+      }
+
+      // Slot 1
+      if (s1) {
+        DOM.slot1.classList.add('filled');
+        DOM.slot1.firstElementChild.textContent = s1.value;
+      } else {
+        DOM.slot1.classList.remove('filled');
+        DOM.slot1.firstElementChild.textContent = '?';
+      }
+
+      // Preview product
+      if (s0 && s1) {
+        const prod = s0.value * s1.value;
+        DOM.targetPreview.textContent = prod;
+        DOM.targetPreview.className = prod === parseInt(DOM.targetNumber.textContent)
+          ? "text-3xl md:text-5xl font-black text-green-400 glow-blue animate-pulse"
+          : "text-3xl md:text-5xl font-black text-red-400";
+      } else {
+        DOM.targetPreview.textContent = '?';
+        DOM.targetPreview.className = "text-3xl md:text-5xl font-black text-amber-400";
+      }
+    }
+
+    function validateAnswer() {
+      const s0 = gameState.selectedSlots[0];
+      const s1 = gameState.selectedSlots[1];
+
+      if (!s0 || !s1) {
+        showSpeech("請先在兩個凹槽放入石塊！");
+        return;
+      }
+
+      const userProduct = s0.value * s1.value;
+      const targetProduct = parseInt(DOM.targetNumber.textContent);
+
+      gameState.totalAttempts++;
+
+      if (userProduct === targetProduct) {
+        // CORRECT
+        sound.playCorrect();
+        gameState.correctAttempts++;
+        gameState.solvedFactors.add(`${s0.value}×${s1.value}=${targetProduct}`);
+
+        // Particle effect
+        createBurst(window.innerWidth / 2, window.innerHeight / 2, '#34d399', 40);
+
+        // Ah-Jiu Cheering animation
+        DOM.charAhjiu.classList.add('scale-125', 'rotate-6');
+        setTimeout(() => DOM.charAhjiu.classList.remove('scale-125', 'rotate-6'), 400);
+
+        showSpeech("太棒了！解開石門封印！🎉");
+
+        clearInterval(gameState.timerInterval);
+
+        // Advance to next door or stage after brief delay
+        setTimeout(() => {
+          if (gameState.mode === 'stage') {
+            gameState.currentDoorIdx++;
+            if (gameState.currentDoorIdx >= STAGES[gameState.currentStageIdx].doors.length) {
+              showResultScreen(true);
+            } else {
+              loadCurrentDoor();
+            }
+          } else {
+            // Endless mode
+            gameState.currentDoorIdx++;
+            loadCurrentDoor();
+          }
+        }, 1200);
+
+      } else {
+        // INCORRECT
+        sound.playWrong();
+        gameState.hp--;
+        updateHUD();
+
+        // Shake puzzle box
+        DOM.puzzleContainer.classList.add('animate-shake');
+        setTimeout(() => DOM.puzzleContainer.classList.remove('animate-shake'), 400);
+
+        // Golem angry shake
+        DOM.charGolemGame.classList.add('scale-110', 'brightness-125');
+        setTimeout(() => DOM.charGolemGame.classList.remove('scale-110', 'brightness-125'), 400);
+
+        showSpeech(`答錯囉！ ${s0.value} × ${s1.value} = ${userProduct} ≠ ${targetProduct}`);
+
+        if (gameState.hp <= 0) {
+          clearInterval(gameState.timerInterval);
+          setTimeout(() => showResultScreen(false), 800);
+        } else {
+          // Clear slots for retry
+          setTimeout(() => {
+            clearSlot(0);
+            clearSlot(1);
+          }, 800);
+        }
+      }
+    }
+
+    function usePotion() {
+      if (gameState.potions <= 0) {
+        showSpeech("藥水已經用完囉！");
+        return;
+      }
+
+      sound.playPotion();
+      gameState.potions--;
+      DOM.potionCount.textContent = gameState.potions;
+
+      // Add +8 seconds and heal 1 HP
+      gameState.timeRemaining += 8;
+      if (gameState.hp < gameState.maxHp) gameState.hp++;
+
+      updateHUD();
+      showSpeech("使用了能量藥水！時間 +8s，生命恢復！⚡");
+      createBurst(window.innerWidth / 2, window.innerHeight / 2, '#38bdf8', 30);
+    }
+
+    function startTimer(durationSeconds) {
+      clearInterval(gameState.timerInterval);
+      gameState.timeRemaining = durationSeconds;
+      
+      updateTimerUI(durationSeconds, durationSeconds);
+
+      gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+        updateTimerUI(gameState.timeRemaining, durationSeconds);
+
+        if (gameState.timeRemaining <= 0) {
+          clearInterval(gameState.timerInterval);
+          sound.playWrong();
+          gameState.hp--;
+          updateHUD();
+          showSpeech("⏰ 時間到！石門機制觸發扣血！");
+
+          if (gameState.hp <= 0) {
+            setTimeout(() => showResultScreen(false), 800);
+          } else {
+            setTimeout(loadCurrentDoor, 1000);
+          }
+        }
+      }, 1000);
+    }
+
+    function updateTimerUI(current, max) {
+      DOM.timerText.textContent = `${current}s`;
+      const pct = Math.max(0, (current / max) * 100);
+      DOM.timerBar.style.width = `${pct}%`;
+
+      if (pct < 30) {
+        DOM.timerBar.className = "h-full bg-red-500 animate-pulse";
+      } else {
+        DOM.timerBar.className = "h-full bg-gradient-to-r from-green-500 via-amber-400 to-red-500 transition-all duration-300";
+      }
+    }
+
+    function updateHUD() {
+      // HP Hearts
+      DOM.hpContainer.innerHTML = '';
+      for (let i = 0; i < gameState.maxHp; i++) {
+        const heart = document.createElement('span');
+        heart.textContent = i < gameState.hp ? '❤️' : '🖤';
+        DOM.hpContainer.appendChild(heart);
+      }
+
+      // Door progress dots
+      DOM.doorDots.innerHTML = '';
+      const totalDoors = gameState.mode === 'stage' ? STAGES[gameState.currentStageIdx].doors.length : 5;
+      for (let i = 0; i < totalDoors; i++) {
+        const dot = document.createElement('span');
+        if (i < gameState.currentDoorIdx) {
+          dot.className = "w-3 h-3 rounded-full bg-green-400 shadow-sm";
+        } else if (i === gameState.currentDoorIdx) {
+          dot.className = "w-3 h-3 rounded-full bg-amber-400 animate-ping";
+        } else {
+          dot.className = "w-3 h-3 rounded-full bg-slate-600";
+        }
+        DOM.doorDots.appendChild(dot);
+      }
+
+      DOM.potionCount.textContent = gameState.potions;
+    }
+
+    function showSpeech(msg) {
+      DOM.speechBubble.textContent = msg;
+      DOM.speechBubble.classList.remove('opacity-0');
+      setTimeout(() => {
+        DOM.speechBubble.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    function showResultScreen(isVictory) {
+      clearInterval(gameState.timerInterval);
+      DOM.gameScreen.classList.add('hidden');
+      DOM.resultScreen.classList.remove('hidden');
+
+      const elapsedSec = Math.round((Date.now() - gameState.startTime) / 1000);
+      const acc = gameState.totalAttempts > 0 
+        ? Math.round((gameState.correctAttempts / gameState.totalAttempts) * 100)
+        : 100;
+
+      if (isVictory) {
+        sound.playVictory();
+        DOM.resultTitle.textContent = gameState.mode === 'stage' ? "關卡冒險完成！" : "無盡試煉結算！";
+        DOM.resultSubtitle.textContent = "恭喜神殿探險隊順利完成解密！";
+        DOM.resultStars.innerHTML = '⭐ ⭐ ⭐';
+        createBurst(window.innerWidth / 2, window.innerHeight / 2, '#f59e0b', 60);
+      } else {
+        sound.playWrong();
+        DOM.resultTitle.textContent = "探險暫時中斷！";
+        DOM.resultSubtitle.textContent = "石門能量耗盡，再接再厲！";
+        DOM.resultStars.innerHTML = '💀';
+      }
+
+      DOM.statDoors.textContent = `${gameState.currentDoorIdx} 門`;
+      DOM.statTime.textContent = `${elapsedSec} 秒`;
+      DOM.statAccuracy.textContent = `${acc}%`;
+      
+      const factorList = Array.from(gameState.solvedFactors).slice(0, 3).join(', ');
+      DOM.statFactors.textContent = factorList || "尚無";
+
+      // Configure next button
+      if (gameState.mode === 'stage' && isVictory && gameState.currentStageIdx < STAGES.length - 1) {
+        DOM.btnResultNext.textContent = "➡️ 下一關卡";
+        DOM.btnResultNext.onclick = advanceStageOrDoor;
+      } else {
+        DOM.btnResultNext.textContent = "🔄 重新挑戰";
+        DOM.btnResultNext.onclick = () => startNewGame(gameState.mode);
+      }
+    }
+
+    function advanceStageOrDoor() {
+      if (gameState.currentStageIdx < STAGES.length - 1) {
+        gameState.currentStageIdx++;
+        gameState.currentDoorIdx = 0;
+        gameState.hp = gameState.maxHp;
+        DOM.resultScreen.classList.add('hidden');
+        DOM.gameScreen.classList.remove('hidden');
+        loadCurrentDoor();
+      } else {
+        showStartScreen();
+      }
+    }
+
+    function showStartScreen() {
+      clearInterval(gameState.timerInterval);
+      DOM.resultScreen.classList.add('hidden');
+      DOM.gameScreen.classList.add('hidden');
+      DOM.startScreen.classList.remove('hidden');
+      DOM.bgContainer.style.backgroundImage = `url('pics/bg_forest.jpg')`;
+    }
+
+    // Initialize Game on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      initEvents();
+    });
+  </script>
+</body>
+</html>
